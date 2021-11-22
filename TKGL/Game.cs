@@ -54,7 +54,7 @@ namespace TKGL {
             Console.WriteLine($"Max Vertex Attribs: {GL.GetInteger(GetPName.MaxVertexAttribs)}");
 
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-            shader = new Shader("vert.glsl", "frag.glsl");
+            shader = new Shader(@"Shaders\vert.glsl", @"Shaders\frag.glsl");
             texture = new Texture(@"resources\wall.jpg");
 
             vao = GL.GenVertexArray();
