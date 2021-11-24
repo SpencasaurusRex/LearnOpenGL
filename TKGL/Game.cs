@@ -34,6 +34,9 @@ namespace TKGL {
         bool wireframe;
         float blend;
 
+        float x;
+        float y;
+
         public Game(int width, int height, string title) : base(width, height, GraphicsMode.Default, title) { }
         
         protected override void OnUpdateFrame(FrameEventArgs e) {
@@ -59,17 +62,35 @@ namespace TKGL {
                 blend = Math.Max(blend - blendDelta, 0.0f);
             }
 
+            float dx = 0;
+            float dy = 0;
+            if (input.IsKeyDown(Key.W)) {
+                dy += 1;
+            }
+            if (input.IsKeyDown(Key.S)) {
+                dy -= 1;
+            }
+            if (input.IsKeyDown(Key.D)) {
+                dx += 1;
+            }
+            if (input.IsKeyDown(Key.A)) {
+                dx -= 1;
+            }
+            x += dx * (float)e.Time;
+            y += dy * (float)e.Time;
+
             previousKeyboard = input;
             base.OnUpdateFrame(e);
         }
 
         protected override void OnLoad(EventArgs e) {
+            
             // Console.WriteLine($"Max Vertex Attribs: {GL.GetInteger(GetPName.MaxVertexAttribs)}");
             StbImage.stbi_set_flip_vertically_on_load(1);
 
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
             shader = new Shader(@"Shaders\vert.glsl", @"Shaders\frag.glsl");
-            wallTexture = new Texture(@"resources\wall.jpg", TextureUnit.Texture0);
+            wallTexture = new Texture(@"resources\wall.png", TextureUnit.Texture0);
             faceTexture = new Texture(@"resources\awesomeface.png", TextureUnit.Texture1);
 
             vao = GL.GenVertexArray();
@@ -116,6 +137,11 @@ namespace TKGL {
         void InitVR() {
             EVRInitError initError = EVRInitError.None;
             OpenVR.Init(ref initError, EVRApplicationType.VRApplication_Scene);
+
+            uint width = 0, height = 0;
+            OpenVR.System.GetRecommendedRenderTargetSize(ref width, ref height);
+
+            Console.WriteLine($"Recommended Render Target Size: {width}x{height}");
         }
 
         protected override void OnRenderFrame(FrameEventArgs e) {
@@ -125,6 +151,7 @@ namespace TKGL {
 
             shader.SetUniform("time", (float)totalTime);
             shader.SetUniform("blend", blend);
+            shader.SetUniform("transform", Matrix4.CreateRotationZ((float)totalTime) * Matrix4.CreateTranslation(new Vector3(x, y, 0)));
 
             GL.BindVertexArray(vao);
             GL.DrawElements(PrimitiveType.Triangles, rectangleIndices.Length, DrawElementsType.UnsignedInt, 0);

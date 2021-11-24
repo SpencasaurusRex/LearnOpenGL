@@ -1,4 +1,5 @@
-﻿using OpenTK.Graphics.OpenGL;
+﻿using OpenTK;
+using OpenTK.Graphics.OpenGL;
 using System.IO;
 
 namespace TKGL {
@@ -61,6 +62,10 @@ namespace TKGL {
 
         public void SetUniform(string uniformName, int val) {
             GL.Uniform1(GetUniformLocation(uniformName), val);
+        }
+
+        public void SetUniform(string uniformName, Matrix4 val) {
+            GL.UniformMatrix4(GetUniformLocation(uniformName), false, ref val);
         }
 
         public int GetAttribLocation(string attribName) => GL.GetAttribLocation(handle, attribName);

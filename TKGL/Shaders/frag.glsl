@@ -9,8 +9,9 @@ uniform float blend;
 
 void main()
 {
-    // FragColor = mix(texture(texture1, vertexUV), vertexColor, sin(time) * 0.5 + 0.5);
-	// FragColor = texture(texture1, vertexUV);
-	// FragColor = texture(texture1, vertexUV);
-	FragColor = mix(texture(texture1, vertexUV), texture(texture2, vertexUV), blend);
+	vec4 tex1 = texture(texture1, vertexUV);
+	vec4 tex2 = texture(texture2, vertexUV);
+	FragColor = mix(tex1, tex2, min(blend, tex2.a));
+
+	if (tex1.a < 0.1) discard;
 }
