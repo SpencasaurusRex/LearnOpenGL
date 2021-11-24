@@ -2,16 +2,18 @@
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
+using StbImageSharp;
 using System;
+using Valve.VR;
 
 namespace TKGL {
     public class Game : GameWindow {
         float[] rectangleVertices = {
             // positions         // colors          // uvs
-             0.5f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  1.0f,  1.0f,
-             0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,  1.0f, -1.0f,
-            -0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f, -1.0f, -1.0f,
-            -0.5f,  0.5f, 0.0f,  1.0f, 1.0f, 0.0f, -1.0f,  1.0f,
+             0.5f,  0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  2.0f, 2.0f,
+             0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,  2.0f, 0.0f,
+            -0.5f, -0.5f, 0.0f,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f,
+            -0.5f,  0.5f, 0.0f,  1.0f, 1.0f, 0.0f,  0.0f, 2.0f,
         };
 
         uint[] rectangleIndices = {
@@ -22,15 +24,17 @@ namespace TKGL {
         int vao;
         int vbo;
         int ebo;
-        
+
         Shader shader;
-        Texture texture;
+        Texture wallTexture;
+        Texture faceTexture;
         KeyboardState previousKeyboard;
 
         double totalTime;
         bool wireframe;
+        float blend;
 
-        public Game(int width, int height, string title) : base(width, height, GraphicsMode.Default, title){ }
+        public Game(int width, int height, string title) : base(width, height, GraphicsMode.Default, title) { }
         
         protected override void OnUpdateFrame(FrameEventArgs e) {
             var input = Keyboard.GetState();
@@ -46,16 +50,27 @@ namespace TKGL {
                     GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
                 }
             }
+
+            const float blendDelta = 0.01f;
+            if (input.IsKeyDown(Key.Up)) {
+                blend = Math.Min(blend + blendDelta, 1.0f);
+            }
+            if (input.IsKeyDown(Key.Down)) {
+                blend = Math.Max(blend - blendDelta, 0.0f);
+            }
+
             previousKeyboard = input;
             base.OnUpdateFrame(e);
         }
 
         protected override void OnLoad(EventArgs e) {
-            Console.WriteLine($"Max Vertex Attribs: {GL.GetInteger(GetPName.MaxVertexAttribs)}");
+            // Console.WriteLine($"Max Vertex Attribs: {GL.GetInteger(GetPName.MaxVertexAttribs)}");
+            StbImage.stbi_set_flip_vertically_on_load(1);
 
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
             shader = new Shader(@"Shaders\vert.glsl", @"Shaders\frag.glsl");
-            texture = new Texture(@"resources\wall.jpg");
+            wallTexture = new Texture(@"resources\wall.jpg", TextureUnit.Texture0);
+            faceTexture = new Texture(@"resources\awesomeface.png", TextureUnit.Texture1);
 
             vao = GL.GenVertexArray();
             vbo = GL.GenBuffer();
@@ -74,30 +89,45 @@ namespace TKGL {
                 GL.BindBuffer(BufferTarget.ElementArrayBuffer, ebo);
                 GL.BufferData(BufferTarget.ElementArrayBuffer, rectangleIndices.Length * sizeof(uint), rectangleIndices, BufferUsageHint.StaticDraw);
                 
-                texture.Use();
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
-                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
-
+                wallTexture.Use();
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.MirroredRepeat);
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.MirroredRepeat);
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
                 GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMinFilter.Linear);
+                
+                faceTexture.Use();
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+                GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMinFilter.Linear);
+
+                shader.Use();
+                shader.SetUniform("texture1", 0);
+                shader.SetUniform("texture2", 1);
+
             }
             GL.BindVertexArray(0);
+
+            //InitVR();
 
             base.OnLoad(e);
         }
 
+        void InitVR() {
+            EVRInitError initError = EVRInitError.None;
+            OpenVR.Init(ref initError, EVRApplicationType.VRApplication_Scene);
+        }
 
         protected override void OnRenderFrame(FrameEventArgs e) {
             totalTime += RenderTime;
             
             GL.Clear(ClearBufferMask.ColorBufferBit);
 
-            shader.Use();
             shader.SetUniform("time", (float)totalTime);
+            shader.SetUniform("blend", blend);
 
             GL.BindVertexArray(vao);
             GL.DrawElements(PrimitiveType.Triangles, rectangleIndices.Length, DrawElementsType.UnsignedInt, 0);
-            //GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
 
             Context.SwapBuffers();
             base.OnRenderFrame(e);

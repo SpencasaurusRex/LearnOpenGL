@@ -48,8 +48,8 @@ namespace TKGL {
         }
 
         public int GetUniformLocation(string uniformName) => GL.GetUniformLocation(handle, uniformName);
-        public void SetUniform(string uniformName, float value) {
-            GL.Uniform1(GetUniformLocation(uniformName), value);
+        public void SetUniform(string uniformName, float val) {
+            GL.Uniform1(GetUniformLocation(uniformName), val);
         }
         public void SetUniform(string uniformName, OpenTK.Vector4 vec) {
             GL.Uniform4(GetUniformLocation(uniformName), vec);
@@ -57,6 +57,10 @@ namespace TKGL {
 
         public void SetUniform(string uniformName, OpenTK.Graphics.Color4 col) {
             GL.Uniform4(GetUniformLocation(uniformName), col);
+        }
+
+        public void SetUniform(string uniformName, int val) {
+            GL.Uniform1(GetUniformLocation(uniformName), val);
         }
 
         public int GetAttribLocation(string attribName) => GL.GetAttribLocation(handle, attribName);
